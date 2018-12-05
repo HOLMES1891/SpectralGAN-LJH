@@ -52,14 +52,14 @@ class SpectralGAN(object):
         print("start training...")
         for epoch in range(config.n_epochs):
             print("epoch %d" % epoch)
-
             # D-steps
             adj_missing = []
             node_1 = []
             node_2 = []
             labels = []
+            batch_size = 0
             for d_epoch in range(config.n_epochs_dis):
-                print("discriminator epoch{}".format(d_epoch))
+                print("discriminator epoch {}".format(d_epoch))
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     adj_missing, node_1, node_2, labels = self.prepare_data_for_d()
@@ -68,7 +68,6 @@ class SpectralGAN(object):
                                          self.discriminator.node_id: np.array(node_1),
                                          self.discriminator.node_neighbor_id: np.array(node_2),
                                          self.discriminator.label: np.array(labels)})
-
             # G-steps
             adj_missing = []
             node_1 = []
@@ -94,78 +93,84 @@ class SpectralGAN(object):
 
     def prepare_data_for_d(self):
         """generate positive and negative samples for the discriminator, and record them in the txt file"""
-        """
-            这里先对 user 进行随机采样，
-            然后对每一个user先随机删除一条边，作为正例
-            然后用generator生成的分布中按概率随机采样，作为负例
-            node1 是一开始 random sample 出来的 [nodeID, nodeID]
-            node2 [pos_ItemID + n_users, neg_ItemID + n_users]
-        """
-        # randomly choose part of users
         users = random.sample(range(self.n_users), config.missing_edge)
 
         R_missing = np.copy(self.R)
         pos_items = []
-        # for u in users, pick up one item, delete it on the graph R and take it as a positive sample
-        for u in users:
-            p_items = set(np.nonzero(self.R[u, :])[0].tolist())
-            # randomly pick one edge to delete
-            p_item = random.sample(p_items, 1)[0]
-            R_missing[u, p_item] = 0
-            # add the deleted edges to the positive item list
-            pos_items.append(p_item)
+        node_1 = []
 
-        # convert user-item graph to a large graph contains all the nodes
+        for u in users:
+            """
+                这里不删边，以保证每次 GCN 都是在同一张图上进行卷积
+                对每个 user 取数据集中所有的数据, 而不是sample出其中一个, 作为正样本
+            """
+            p_items = np.nonzero(self.R[u, :])[0].tolist()
+            # p_item = random.sample(p_items, 1)[0]
+            # R_missing[u, p_item] = 0
+            pos_items += p_items
+            node_1 += [u] * len(p_items)
+
         adj_missing = self.adj_mat(R=R_missing)
-        # position in the large matrix
         node_2 = [self.n_users + p for p in pos_items]
-        # forward pass in generator
         all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.adj_miss: adj_missing})
 
         negative_items = []
         for u in users:
-            neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
-            # only use probability distribution of neg_items ?????
-            relevance_probability = all_score[u, neg_items]
-            # use softmax to compute the relevance probability
+            """
+                这里对 all_items (而不是neg_items) 进行 softmax 算 relevance_probability
+                这样 generator 可以生成真实的样本
+                例如 数据集中有 (u_0, i_3)， generator 也可以生成 (u_0, i_3)
+            """
+            # neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
+            all_items = range(self.n_items)
+            relevance_probability = all_score[u, all_items]
             relevance_probability = utils.softmax(relevance_probability)
-            # pick up only one item according to relevance_probability
-            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
-            negative_items.append(neg_item)
+            # 对u, 数据集中有多少个正样本，就在 relevance_probability 中 sample 多少个负样本
+            p_items = np.nonzero(self.R[u, :])[0].tolist()
+            neg_item = np.random.choice(all_items, size=len(p_items), p=relevance_probability).tolist()  # select next node
+            negative_items += neg_item
 
         node_2 += [self.n_users + p for p in negative_items]
-        node_1 = users*2
+        node_1 = node_1 * 2
 
-        labels = [1.0]*config.missing_edge + [0.0] * config.missing_edge
+        batch_size = len(node_1)
+        assert batch_size == len(node_2)
+
+        labels = [1.0]*(batch_size//2) + [0.0] * (batch_size//2)
 
         return adj_missing, node_1, node_2, labels
 
     def prepare_data_for_g(self):
         """sample nodes for the generator"""
-        # randomly choose part of users to delete edges
         users = random.sample(range(self.n_users), config.missing_edge)
-
         R_missing = np.copy(self.R)
-        for u in users:
-            pos_items = set(np.nonzero(self.R[u,:])[0].tolist())
-            pos_item = random.sample(pos_items, 1)[0]
-            R_missing[u, pos_item] = 0
+        node_1 = []
+        node_2 = []
 
-        # convert user-item graph to a large graph contains all the nodes
+        # for u in users:
+        #     pos_items = set(np.nonzero(self.R[u,:])[0].tolist())
+        #     pos_item = random.sample(pos_items, 1)[0]
+        #     R_missing[u, pos_item] = 0
+
         adj_missing = self.adj_mat(R=R_missing)
         all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.adj_miss: adj_missing})
 
         negative_items = []
         for u in users:
-            pos_items = set(np.nonzero(self.R[u, :])[0].tolist())
-            neg_items = list(set(range(self.n_items)) - pos_items)
-            relevance_probability = all_score[u, neg_items]
+            """
+                这里对 all_items (而不是neg_items) 进行 softmax 算 relevance_probability
+                这样 generator 可以生成真实的样本
+                例如 数据集中有 (u_0, i_3)， generator 也可以生成 (u_0, i_3)
+            """
+            pos_items = np.nonzero(self.R[u, :])[0].tolist()
+            all_items = np.arange(self.n_items)
+            relevance_probability = all_score[u, all_items]
             relevance_probability = utils.softmax(relevance_probability)
-            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
-            negative_items.append(data.n_users + neg_item)
+            # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
+            neg_item = np.random.choice(all_items, size=2 * len(pos_items), p=relevance_probability) + data.n_users
+            negative_items += neg_item.tolist()
+            node_1 += 2 * len(pos_items) * [u]
 
-        node_1 = users*2
-        node_2 = negative_items*2
         reward = self.sess.run(self.discriminator.reward,
                                feed_dict={self.discriminator.adj_miss: adj_missing,
                                           self.discriminator.node_id: np.array(node_1),
