@@ -18,9 +18,9 @@ class Generator(object):
                                                                name='weight')
 
         self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
-        self.node_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
-        self.node_neighbor_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
-        self.reward = tf.placeholder(tf.float32, shape=[config.missing_edge])
+        self.node_id = tf.placeholder(tf.int32)
+        self.node_neighbor_id = tf.placeholder(tf.int32)
+        self.reward = tf.placeholder(tf.float32)
 
         adj_miss = tf.cast(self.adj_miss, tf.float32)
         degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
