@@ -57,7 +57,6 @@ class SpectralGAN(object):
             node_1 = []
             node_2 = []
             labels = []
-            batch_size = 0
             for d_epoch in range(config.n_epochs_dis):
                 print("discriminator epoch {}".format(d_epoch))
                 # generate new nodes for the discriminator for every dis_interval iterations
