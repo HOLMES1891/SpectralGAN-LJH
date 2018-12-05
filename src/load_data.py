@@ -3,11 +3,22 @@ import random as rd
 
 
 class Data(object):
+    """
+    Construct user-item graph matrix and test_set
+    """
+    def get_n_items(self, train_file, test_file):
+        n_items = 0
+        with open(train_file) as f_train:
+            with open(test_file) as f_test:
+                pass
+
     def __init__(self, train_file, test_file):
         #get number of users and items
         self.n_users, self.n_items = 0, 0
 
-
+        # ------------------------------------
+        # find number of items (self.n_items)
+        # ------------------------------------
         with open(train_file) as f:
             for l in f.readlines():
                 if len(l) > 0:
@@ -22,9 +33,13 @@ class Data(object):
                     l = l.strip('\n')
                     items = [int(i) for i in l.split(' ')[1:]]
                     self.n_items = max(self.n_items, max(items))
+
         self.n_items += 1
         self.R = np.zeros((self.n_users, self.n_items), dtype=np.float32)
 
+        # -----------------------------------------
+        # fill the user-item graph matrix (self.R)
+        # -----------------------------------------
         self.train_items, self.test_set = {}, {}
         with open(train_file) as f_train:
             with open(test_file) as f_test:
@@ -37,8 +52,11 @@ class Data(object):
                     for i in train_items:
                         self.R[uid][i] = 1
 
-                    self.train_items[uid] = train_items
+                    self.train_items[uid] = train_items     # ??????????
 
+                # --------------------------------------
+                # fill test_set = {"uid": list of items}
+                # --------------------------------------
                 for l in f_test.readlines():
                     if len(l) == 0: break
                     l = l.strip('\n')

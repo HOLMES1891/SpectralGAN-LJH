@@ -10,6 +10,8 @@ from src import utils
 from src import test
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+#   Load data
 data = load_data.Data(train_file=config.train_filename, test_file=config.test_filename)
 
 
@@ -57,6 +59,7 @@ class SpectralGAN(object):
             node_2 = []
             labels = []
             for d_epoch in range(config.n_epochs_dis):
+                print("discriminator epoch{}".format(d_epoch))
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     adj_missing, node_1, node_2, labels = self.prepare_data_for_d()
@@ -72,6 +75,7 @@ class SpectralGAN(object):
             node_2 = []
             reward = []
             for g_epoch in range(config.n_epochs_gen):
+                print("generator epoch{}".format(g_epoch))
                 if g_epoch % config.gen_interval == 0:
                     adj_missing, node_1, node_2, reward = self.prepare_data_for_g()
 
@@ -90,38 +94,55 @@ class SpectralGAN(object):
 
     def prepare_data_for_d(self):
         """generate positive and negative samples for the discriminator, and record them in the txt file"""
+        """
+            这里先对 user 进行随机采样，
+            然后对每一个user先随机删除一条边，作为正例
+            然后用generator生成的分布中按概率随机采样，作为负例
+            node1 是一开始 random sample 出来的 [nodeID, nodeID]
+            node2 [pos_ItemID + n_users, neg_ItemID + n_users]
+        """
+        # randomly choose part of users
         users = random.sample(range(self.n_users), config.missing_edge)
 
         R_missing = np.copy(self.R)
         pos_items = []
+        # for u in users, pick up one item, delete it on the graph R and take it as a positive sample
         for u in users:
             p_items = set(np.nonzero(self.R[u, :])[0].tolist())
+            # randomly pick one edge to delete
             p_item = random.sample(p_items, 1)[0]
             R_missing[u, p_item] = 0
+            # add the deleted edges to the positive item list
             pos_items.append(p_item)
 
+        # convert user-item graph to a large graph contains all the nodes
         adj_missing = self.adj_mat(R=R_missing)
+        # position in the large matrix
         node_2 = [self.n_users + p for p in pos_items]
-
-
+        # forward pass in generator
         all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.adj_miss: adj_missing})
+
         negative_items = []
         for u in users:
             neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
-
+            # only use probability distribution of neg_items ?????
             relevance_probability = all_score[u, neg_items]
+            # use softmax to compute the relevance probability
             relevance_probability = utils.softmax(relevance_probability)
+            # pick up only one item according to relevance_probability
             neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(neg_item)
 
         node_2 += [self.n_users + p for p in negative_items]
         node_1 = users*2
+
         labels = [1.0]*config.missing_edge + [0.0] * config.missing_edge
 
         return adj_missing, node_1, node_2, labels
 
     def prepare_data_for_g(self):
         """sample nodes for the generator"""
+        # randomly choose part of users to delete edges
         users = random.sample(range(self.n_users), config.missing_edge)
 
         R_missing = np.copy(self.R)
@@ -130,8 +151,8 @@ class SpectralGAN(object):
             pos_item = random.sample(pos_items, 1)[0]
             R_missing[u, pos_item] = 0
 
+        # convert user-item graph to a large graph contains all the nodes
         adj_missing = self.adj_mat(R=R_missing)
-
         all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.adj_miss: adj_missing})
 
         negative_items = []
@@ -151,8 +172,8 @@ class SpectralGAN(object):
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
         return adj_missing, node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
 
-
     def adj_mat(self, R, self_connection=True):
+        # convert user-item graph to a big graph
         A = np.zeros([self.n_users + self.n_items, self.n_users + self.n_items], dtype=np.float32)
         A[:self.n_users, self.n_users:] = R
         A[self.n_users:, :self.n_users] = R.T

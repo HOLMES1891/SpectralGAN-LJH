@@ -2,6 +2,8 @@ import tensorflow as tf
 from src import config
 from src import test
 from src.SpectralGAN import data
+
+
 class Generator(object):
     def __init__(self, n_node, n_layer):
         self.n_node = n_node
@@ -22,6 +24,7 @@ class Generator(object):
 
         adj_miss = tf.cast(self.adj_miss, tf.float32)
         degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
+        print("generator forward passing...")
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
             self.embedding_matrix = tf.nn.leaky_relu(tf.matmul(tf.matmul(tf.matmul(degree, adj_miss),
@@ -39,6 +42,7 @@ class Generator(object):
                     tf.nn.l2_loss(self.node_neighbor_embedding) + tf.nn.l2_loss(self.node_embedding))
 
         user_embeddings, item_embeddings = tf.split(self.embedding_matrix, [data.n_users, data.n_items])
+        print("calculate all score...")
         self.all_score = tf.matmul(user_embeddings, item_embeddings, transpose_b=True)
 
         optimizer = tf.train.AdamOptimizer(config.lr_gen)

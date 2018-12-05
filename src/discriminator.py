@@ -33,7 +33,6 @@ class Discriminator(object):
                                                               self.node_neighbor_id)
         self.score = tf.reduce_sum(tf.multiply(self.node_embedding, self.node_neighbor_embedding), axis=1)
 
-
         self.loss = tf.reduce_sum(
                 tf.nn.sigmoid_cross_entropy_with_logits(labels=self.label, logits=self.score)) \
                 + config.lambda_dis * ( tf.nn.l2_loss(self.node_neighbor_embedding) +
