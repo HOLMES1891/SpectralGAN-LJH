@@ -24,7 +24,6 @@ class Generator(object):
 
         adj_miss = tf.cast(self.adj_miss, tf.float32)
         degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
-        print("generator forward passing...")
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
             self.embedding_matrix = tf.nn.leaky_relu(tf.matmul(tf.matmul(tf.matmul(degree, adj_miss),
@@ -35,6 +34,7 @@ class Generator(object):
 
         self.node_neighbor_embedding = tf.nn.embedding_lookup(self.embedding_matrix,
                                                               self.node_neighbor_id)
+
         self.score = tf.reduce_sum(self.node_embedding * self.node_neighbor_embedding, axis=1)
         self.prob = tf.clip_by_value(tf.nn.sigmoid(self.score), 1e-5, 1)
 
@@ -42,7 +42,6 @@ class Generator(object):
                     tf.nn.l2_loss(self.node_neighbor_embedding) + tf.nn.l2_loss(self.node_embedding))
 
         user_embeddings, item_embeddings = tf.split(self.embedding_matrix, [data.n_users, data.n_items])
-        print("calculate all score...")
         self.all_score = tf.matmul(user_embeddings, item_embeddings, transpose_b=True)
 
         optimizer = tf.train.AdamOptimizer(config.lr_gen)

@@ -62,6 +62,7 @@ class SpectralGAN(object):
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     adj_missing, node_1, node_2, labels = self.prepare_data_for_d()
+
                 self.sess.run(self.discriminator.d_updates,
                               feed_dict={self.discriminator.adj_miss: np.array(adj_missing),
                                          self.discriminator.node_id: np.array(node_1),
@@ -72,6 +73,10 @@ class SpectralGAN(object):
             node_1 = []
             node_2 = []
             reward = []
+            """
+                生成器的训练 这里改的比较多
+                
+            """
             for g_epoch in range(config.n_epochs_gen):
                 print("generator epoch{}".format(g_epoch))
                 if g_epoch % config.gen_interval == 0:
@@ -143,16 +148,26 @@ class SpectralGAN(object):
         """sample nodes for the generator"""
         users = random.sample(range(self.n_users), config.missing_edge)
         R_missing = np.copy(self.R)
-        node_1 = []
-        node_2 = []
-
-        # for u in users:
-        #     pos_items = set(np.nonzero(self.R[u,:])[0].tolist())
-        #     pos_item = random.sample(pos_items, 1)[0]
-        #     R_missing[u, pos_item] = 0
-
         adj_missing = self.adj_mat(R=R_missing)
-        all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.adj_miss: adj_missing})
+
+        for u in users:
+            # 算 u 和所有 item 之间的 embedding 乘积
+            score = self.sess.run(self.generator.score,
+                                  feed_dict={
+                                      self.generator.adj_miss: np.array(adj_missing),
+                                      self.generator.node_id: np.array(u),
+                                      self.generator.node_neighbor_id: np.array(list(range(self.n_users, self.n_node)))
+                                  })
+            exp_score = np.exp(score)
+            relevance_probability = exp_score / np.sum(exp_score)  # relevance_probability is generator distribution
+            pos_items = np.nonzero(self.R[u, :])[0].tolist()
+            # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
+            neg_item = np.random.choice(np.arange(self.n_items), 2*len(pos_items), p=relevance_probability) + data.n_users
+            reward = self.sess.run(self.discriminator.reward,
+                                   feed_dict={self.discriminator.adj_miss: adj_missing,
+                                          self.discriminator.node_id: np.array(u),
+                                          self.discriminator.node_neighbor_id: np.array(neg_item.tolist())})
+
 
         negative_items = []
         for u in users:
