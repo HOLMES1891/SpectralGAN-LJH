@@ -131,7 +131,7 @@ class SpectralGAN(object):
             relevance_probability = utils.softmax(relevance_probability)
             # 对u, 数据集中有多少个正样本，就在 relevance_probability 中 sample 多少个负样本
             p_items = np.nonzero(self.R[u, :])[0].tolist()
-            neg_item = np.random.choice(all_items, size=len(p_items), p=relevance_probability).tolist()  # select next node
+            neg_item = np.random.choice(all_items, size=len(p_items), p=relevance_probability).tolist()
             negative_items += neg_item
 
         node_2 += [self.n_users + p for p in negative_items]
@@ -154,17 +154,17 @@ class SpectralGAN(object):
 
         for u in users:
             # 算 u 和所有 item 之间的 embedding 乘积
-            score = self.sess.run(self.generator.score,
+            i = list(range(self.n_users, self.n_node))
+            relevance_probability = self.sess.run(self.generator.prob,
                                   feed_dict={
                                       self.generator.adj_miss: np.array(adj_missing),
-                                      self.generator.node_id: np.array(u),
-                                      self.generator.node_neighbor_id: np.array(list(range(self.n_users, self.n_node)))
+                                      self.generator.u: np.array(u),
+                                      self.generator.i: np.array(i)
                                   })
-            exp_score = np.exp(score)
-            relevance_probability = exp_score / np.sum(exp_score)  # relevance_probability is generator distribution
             pos_items = np.nonzero(self.R[u, :])[0].tolist()
             # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
-            neg_item = np.random.choice(np.arange(self.n_items), 2*len(pos_items), p=relevance_probability) + data.n_users
+            neg_item = np.random.choice(np.arange(self.n_items), 2*len(pos_items), p=relevance_probability)
+            neg_item += data.n_users
             node_1 += 2 * len(pos_items) * [u]
             node_2 += neg_item.tolist()
 
