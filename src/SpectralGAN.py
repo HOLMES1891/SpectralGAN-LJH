@@ -159,7 +159,9 @@ class SpectralGAN(object):
                                       self.generator.i: np.array(i)
                                   })
             pos_items = np.nonzero(self.R[u, :])[0].tolist()
-            # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
+            # 对 u :
+            # 训练 D 的时候是 len(pos_items) 个 正样本 和 len(pos_items) 个负样本
+            # 训练 G 的时候是 2 * len(pos_items) 个负样本
             neg_item = np.random.choice(np.arange(self.n_items), 2*len(pos_items), p=relevance_probability)
             neg_item += data.n_users
             node_1 += 2 * len(pos_items) * [u]
