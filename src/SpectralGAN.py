@@ -51,14 +51,14 @@ class SpectralGAN(object):
 
         print("start training...")
         for epoch in range(config.n_epochs):
-            print("epoch %d" % epoch)
+            print("----------- epoch %d -----------" % epoch)
             # D-steps
             adj_missing = []
             node_1 = []
             node_2 = []
             labels = []
             for d_epoch in range(config.n_epochs_dis):
-                print("discriminator epoch {}".format(d_epoch))
+                print("train D epoch {}".format(d_epoch))
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     adj_missing, node_1, node_2, labels = self.prepare_data_for_d()
@@ -73,21 +73,18 @@ class SpectralGAN(object):
             node_1 = []
             node_2 = []
             reward = []
-            """
-                生成器的训练 这里改的比较多
-                
-            """
             for g_epoch in range(config.n_epochs_gen):
-                print("generator epoch{}".format(g_epoch))
+                print("train G epoch {} ".format(g_epoch))
                 if g_epoch % config.gen_interval == 0:
                     adj_missing, node_1, node_2, reward = self.prepare_data_for_g()
 
                 self.sess.run(self.generator.g_updates,
                                 feed_dict={self.generator.adj_miss: np.array(adj_missing),
-                                           self.generator.node_id: np.array(node_1),
-                                           self.generator.node_neighbor_id: np.array(node_2),
+                                           self.generator.i: np.array(node_1),
+                                           self.generator.u: np.array(node_2),
                                            self.generator.reward: np.array(reward)})
 
+            print("begin test...")
             ret = test.test(sess=self.sess, model=self.generator, users_to_test=data.test_set.keys())
             print('recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
                   % (ret[0], ret[1], ret[2], ret[3], ret[4]))
