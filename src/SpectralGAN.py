@@ -149,6 +149,8 @@ class SpectralGAN(object):
         users = random.sample(range(self.n_users), config.missing_edge)
         R_missing = np.copy(self.R)
         adj_missing = self.adj_mat(R=R_missing)
+        node_1 = []
+        node_2 = []
 
         for u in users:
             # 算 u 和所有 item 之间的 embedding 乘积
@@ -163,27 +165,8 @@ class SpectralGAN(object):
             pos_items = np.nonzero(self.R[u, :])[0].tolist()
             # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
             neg_item = np.random.choice(np.arange(self.n_items), 2*len(pos_items), p=relevance_probability) + data.n_users
-            reward = self.sess.run(self.discriminator.reward,
-                                   feed_dict={self.discriminator.adj_miss: adj_missing,
-                                          self.discriminator.node_id: np.array(u),
-                                          self.discriminator.node_neighbor_id: np.array(neg_item.tolist())})
-
-
-        negative_items = []
-        for u in users:
-            """
-                这里对 all_items (而不是neg_items) 进行 softmax 算 relevance_probability
-                这样 generator 可以生成真实的样本
-                例如 数据集中有 (u_0, i_3)， generator 也可以生成 (u_0, i_3)
-            """
-            pos_items = np.nonzero(self.R[u, :])[0].tolist()
-            all_items = np.arange(self.n_items)
-            relevance_probability = all_score[u, all_items]
-            relevance_probability = utils.softmax(relevance_probability)
-            # 对u, 采 2 * len(pos_items) 个 样本, 这样对于 u 来说训练 D 和 G 的时候样本数量是一致的
-            neg_item = np.random.choice(all_items, size=2 * len(pos_items), p=relevance_probability) + data.n_users
-            negative_items += neg_item.tolist()
             node_1 += 2 * len(pos_items) * [u]
+            node_2 += neg_item.tolist()
 
         reward = self.sess.run(self.discriminator.reward,
                                feed_dict={self.discriminator.adj_miss: adj_missing,
