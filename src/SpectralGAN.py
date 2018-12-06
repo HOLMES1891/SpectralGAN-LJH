@@ -172,7 +172,7 @@ class SpectralGAN(object):
                                feed_dict={self.discriminator.adj_miss: adj_missing,
                                           self.discriminator.node_id: np.array(node_1),
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
-        return adj_missing, node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
+        return adj_missing, node_1, node_2, reward
 
     def adj_mat(self, R, self_connection=True):
         # convert user-item graph to a big graph
