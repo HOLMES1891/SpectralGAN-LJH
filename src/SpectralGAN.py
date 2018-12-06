@@ -170,6 +170,7 @@ class SpectralGAN(object):
                                feed_dict={self.discriminator.adj_miss: adj_missing,
                                           self.discriminator.node_id: np.array(node_1),
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
+        print(len(node_1), len(node_2), reward.shape)
         return adj_missing, node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
 
     def adj_mat(self, R, self_connection=True):
