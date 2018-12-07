@@ -51,7 +51,6 @@ def test_one_user(x):
     ap_80 = utils.average_precision(r, 80)
     ap_100 = utils.average_precision(r, 100)
 
-
     return np.array([recall_20,recall_40,recall_60,recall_80,recall_100, ap_20,ap_40,ap_60,ap_80,ap_100])
 
 

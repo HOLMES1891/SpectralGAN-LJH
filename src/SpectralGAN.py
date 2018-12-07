@@ -24,6 +24,8 @@ class SpectralGAN(object):
         # construct graph
         self.R = R
         self.adj = self.adj_mat(R=R)
+        self.eigenvalues, self.eigenvectors = linalg.eigs(self.adj, k=config.n_eigs)
+
         print("building GAN model...")
         self.discriminator = None
         self.generator = None
@@ -60,24 +62,24 @@ class SpectralGAN(object):
             labels = []
             losess = []
 
-            eigenvalues, eigenvectors = linalg.eigs(self.adj, k=config.n_eigs)
-            all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: eigenvectors,
-                                                                           self.generator.eigen_values: eigenvalues})
+            all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: self.eigenvectors,
+                                                                           self.generator.eigen_values: self.eigenvalues})
             for d_epoch in range(config.n_epochs_dis):
                 d_s = time()
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     node_1, node_2, labels = self.prepare_data_for_d(all_score)
                 p_e = time()
+
                 _, loss = self.sess.run([self.discriminator.d_updates, self.discriminator.loss],
-                              feed_dict={self.discriminator.eigen_vectors: eigenvalues,
-                                         self.discriminator.eigen_values: eigenvectors,
+                              feed_dict={self.discriminator.eigen_vectors: self.eigenvectors,
+                                         self.discriminator.eigen_values: self.eigenvalues,
                                          self.discriminator.node_id: np.array(node_1),
                                          self.discriminator.node_neighbor_id: np.array(node_2),
                                          self.discriminator.label: np.array(labels)})
                 losess.append(loss)
                 d_e = time()
-                print("prepare for d {}, update {}".format(p_e-d_s, d_e-p_e))
+                # print("depoch {} prepare for d {}, update {}".format(d_epoch, p_e-d_s, d_e-p_e))
             print("d_loss %f" % np.mean(np.asarray(losess)))
 
             # G-steps
@@ -87,16 +89,20 @@ class SpectralGAN(object):
             reward = []
             losess = []
             for g_epoch in range(config.n_epochs_gen):
+                g_s = time()
                 if g_epoch % config.gen_interval == 0:
-                    eigen_vectors, eigen_values, node_1, node_2, reward = self.prepare_data_for_g()
-
+                    node_1, node_2, reward = self.prepare_data_for_g()
+                p_e = time()
                 _, loss = self.sess.run([self.generator.g_updates, self.generator.loss],
-                                feed_dict={self.generator.eigen_vectors: eigen_vectors,
-                                           self.generator.eigen_values: eigen_values,
+                                feed_dict={self.generator.eigen_vectors: self.eigenvectors,
+                                           self.generator.eigen_values: self.eigenvalues,
                                            self.generator.node_id: np.array(node_1),
                                            self.generator.node_neighbor_id: np.array(node_2),
                                            self.generator.reward: np.array(reward)})
+                g_e = time()
                 losess.append(loss)
+                # print("gepoch {} prepare for d {}, update {}".format(g_epoch, p_e-g_s, g_e - p_e))
+
             print("g_loss %f" % np.mean(np.asarray(losess)))
             ret = test.test(sess=self.sess, model=self.discriminator, users_to_test=data.test_set.keys())
             print('recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
@@ -132,10 +138,8 @@ class SpectralGAN(object):
         """sample nodes for the generator"""
         users = random.sample(range(self.n_users), config.missing_edge)
 
-        eigenvalues, eigenvectors = linalg.eigs(self.adj, k=config.n_eigs)
-
-        all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: eigenvectors,
-                                                                       self.generator.eigen_values:   eigenvalues})
+        all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: self.eigenvectors,
+                                                                       self.generator.eigen_values: self.eigenvalues})
 
         negative_items = []
         for u in users:
@@ -149,12 +153,11 @@ class SpectralGAN(object):
         node_1 = users*2
         node_2 = negative_items*2
         reward = self.sess.run(self.discriminator.reward,
-                               feed_dict={self.discriminator.eigen_vectors: eigenvectors,
-                                          self.discriminator.eigen_values: eigenvalues,
+                               feed_dict={self.discriminator.eigen_vectors: self.eigenvectors,
+                                          self.discriminator.eigen_values: self.eigenvalues,
                                           self.discriminator.node_id: np.array(node_1),
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
-        return eigenvectors, eigenvalues, node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
-
+        return node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
 
     def adj_mat(self, R, self_connection=True):
         A = np.zeros([self.n_users + self.n_items, self.n_users + self.n_items], dtype=np.float32)

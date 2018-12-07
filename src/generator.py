@@ -22,8 +22,9 @@ class Generator(object):
         self.node_neighbor_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
         self.reward = tf.placeholder(tf.float32, shape=[config.missing_edge])
 
-        #adj_miss = tf.cast(self.adj_miss, tf.float32)
-        #degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
+        # adj_miss = tf.cast(self.adj_miss, tf.float32)
+        # degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
+
         A_hat = tf.add(tf.matmul(self.eigen_vectors, tf.transpose(self.eigen_vectors)),
                        tf.matmul(self.eigen_vectors, tf.matmul(tf.diag(self.eigen_values),
                                                                tf.transpose(self.eigen_vectors))))
