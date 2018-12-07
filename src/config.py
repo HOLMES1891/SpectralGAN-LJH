@@ -9,8 +9,8 @@ n_sample_gen = 40  # number of samples for the generator
 lr_gen = 2e-3  # learning rate for the generator
 lr_dis = 2e-3  # learning rate for the discriminator
 n_epochs = 30000  # number of outer loops
-n_epochs_gen = 100  # number of inner loops for the generator
-n_epochs_dis = 100  # number of inner loops for the discriminator
+n_epochs_gen = 50  # number of inner loops for the generator
+n_epochs_dis = 50  # number of inner loops for the discriminator
 gen_interval = 1    # n_epochs_gen  # sample new nodes for the generator for every gen_interval iterations
 dis_interval = 1    # n_epochs_dis  # sample new nodes for the discriminator for every dis_interval iterations
 
@@ -30,3 +30,10 @@ test_interval = 1
 # path settings
 train_filename = "../data/ml-1m/train_users.dat"
 test_filename = "../data/ml-1m/test_users.dat"
+
+
+def print_config():
+    print("====================== config ======================")
+    print("lr_gen {}, lr_dis {}".format(lr_gen, lr_dis))
+    print("n_epochs_gen {}, n_epochs_dis {}".format(n_epochs_gen, n_epochs_dis))
+    print("n_layers {}, n_eigs {}, missing_edge {}".format(n_layers, n_eigs, missing_edge))
