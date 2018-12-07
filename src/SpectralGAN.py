@@ -56,7 +56,6 @@ class SpectralGAN(object):
         for epoch in range(config.n_epochs):
             print("epoch %d" % epoch)
             # D-steps
-            adj_missing = []
             node_1 = []
             node_2 = []
             labels = []
@@ -83,7 +82,6 @@ class SpectralGAN(object):
             print("d_loss %f" % np.mean(np.asarray(losess)))
 
             # G-steps
-            adj_missing = []
             node_1 = []
             node_2 = []
             reward = []
@@ -122,10 +120,11 @@ class SpectralGAN(object):
             p_items = set(np.nonzero(self.R[u, :])[0].tolist())
             p_item = random.sample(p_items, 1)[0]
             pos_items.append(p_item)
-            neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
-            relevance_probability = all_score[u, neg_items]
+            # neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
+            all_items = list(range(self.n_items))
+            relevance_probability = all_score[u, all_items]
             relevance_probability = utils.softmax(relevance_probability)
-            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
+            neg_item = np.random.choice(all_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(neg_item)
 
         node_2 = [self.n_users + p for p in pos_items] + [self.n_users + p for p in negative_items]
@@ -143,11 +142,12 @@ class SpectralGAN(object):
 
         negative_items = []
         for u in users:
-            pos_items = set(np.nonzero(self.R[u, :])[0].tolist())
-            neg_items = list(set(range(self.n_items)) - pos_items)
-            relevance_probability = all_score[u, neg_items]
+            # pos_items = set(np.nonzero(self.R[u, :])[0].tolist())
+            # neg_items = list(set(range(self.n_items)) - pos_items)
+            all_items = list(range(self.n_items))
+            relevance_probability = all_score[u, all_items]
             relevance_probability = utils.softmax(relevance_probability)
-            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
+            neg_item = np.random.choice(all_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(data.n_users + neg_item)
 
         node_1 = users*2
