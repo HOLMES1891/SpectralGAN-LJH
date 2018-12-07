@@ -29,7 +29,7 @@ class Discriminator(object):
         all_embeddings = [self.embedding_matrix]
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
-            embedding_matrix = tf.nn.sigmoid(tf.matmul(tf.matmul(A_hat,self.embedding_matrix),
+            embedding_matrix = tf.nn.relu(tf.matmul(tf.matmul(A_hat,self.embedding_matrix),
                                                             weight_for_l))
             all_embeddings.append(embedding_matrix)
 

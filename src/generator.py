@@ -32,7 +32,7 @@ class Generator(object):
         all_embeddings = [self.embedding_matrix]
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
-            embedding_matrix = tf.nn.sigmoid(tf.matmul(tf.matmul(A_hat,self.embedding_matrix),
+            embedding_matrix = tf.nn.relu(tf.matmul(tf.matmul(A_hat,self.embedding_matrix),
                                                   weight_for_l))
             all_embeddings.append(embedding_matrix)
 
@@ -42,7 +42,7 @@ class Generator(object):
         self.node_neighbor_embedding = tf.nn.embedding_lookup(all_embeddings,
                                                               self.node_neighbor_id)
         self.score = tf.reduce_sum(self.node_embedding * self.node_neighbor_embedding, axis=1)
-        self.prob = tf.clip_by_value(tf.nn.sigmoid(self.score), 1e-5, 1)
+        self.prob = tf.clip_by_value(tf.nn.leaky_relu(self.score), 1e-5, 1)
 
         self.loss = -tf.reduce_mean(tf.log(self.prob) * self.reward) + config.lambda_gen * (
                     tf.nn.l2_loss(self.node_neighbor_embedding) + tf.nn.l2_loss(self.node_embedding))
