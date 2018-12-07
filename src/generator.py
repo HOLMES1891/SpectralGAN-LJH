@@ -1,7 +1,8 @@
 import tensorflow as tf
-from src import config
-from src import test
-from src.SpectralGAN import data
+import config
+import test
+from SpectralGAN import data
+
 class Generator(object):
     def __init__(self, n_node, n_layer):
         self.n_node = n_node

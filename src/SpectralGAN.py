@@ -1,13 +1,13 @@
 import os
 import numpy as np
 import tensorflow as tf
-from src import config
-from src import generator
-from src import discriminator
+import config
+import generator
+import discriminator
 import random
-from src import load_data
-from src import utils
-from src import test
+import load_data
+import utils
+import test
 from scipy.sparse import linalg
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'

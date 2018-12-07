@@ -1,8 +1,8 @@
 
 from src import load_data
-from src import config
-from src import utils
-from src.SpectralGAN import data
+import config
+import utils
+from SpectralGAN import data
 import numpy as np
 import multiprocessing
 from scipy.sparse import linalg

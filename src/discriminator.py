@@ -1,5 +1,5 @@
 import tensorflow as tf
-from src import config
+import config
 
 class Discriminator(object):
     def __init__(self, data, n_node, n_layer):
