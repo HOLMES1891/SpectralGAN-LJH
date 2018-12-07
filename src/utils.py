@@ -13,6 +13,7 @@ def normalize_adj(adj):
 def recall(rank, ground_truth, N):
     return len(set(rank[:N]) & set(ground_truth)) / float(len(set(ground_truth)))
 
+
 def precision_at_k(r, k):
     """Score is precision @ k
     Relevance is binary (nonzero is relevant).

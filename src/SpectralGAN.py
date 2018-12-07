@@ -23,7 +23,7 @@ class SpectralGAN(object):
         self.n_node = n_users + n_items
         # construct graph
         self.R = R
-
+        self.adj = self.adj_mat(R=R)
         print("building GAN model...")
         self.discriminator = None
         self.generator = None
@@ -53,13 +53,16 @@ class SpectralGAN(object):
         print("start training...")
         for epoch in range(config.n_epochs):
             print("epoch %d" % epoch)
-
             # D-steps
             adj_missing = []
             node_1 = []
             node_2 = []
             labels = []
             losess = []
+
+            eigenvalues, eigenvectors = linalg.eigs(self.adj, k=config.n_eigs)
+            all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: eigenvectors,
+                                                                           self.generator.eigen_values: eigenvalues})
             for d_epoch in range(config.n_epochs_dis):
                 d_s = time()
                 # generate new nodes for the discriminator for every dis_interval iterations
@@ -106,30 +109,20 @@ class SpectralGAN(object):
         """generate positive and negative samples for the discriminator, and record them in the txt file"""
         users = random.sample(range(self.n_users), config.missing_edge)
 
-        R_missing = np.copy(self.R)
         pos_items = []
+        negative_items = []
+
         for u in users:
             p_items = set(np.nonzero(self.R[u, :])[0].tolist())
             p_item = random.sample(p_items, 1)[0]
-            R_missing[u, p_item] = 0
             pos_items.append(p_item)
-
-        adj_missing = self.adj_mat(R=R_missing)
-        node_2 = [self.n_users + p for p in pos_items]
-
-        eigenvalues, eigenvectors = linalg.eigs(adj_missing, k=config.n_eigs)
-        all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: eigenvectors,
-                                                                       self.generator.eigen_values: eigenvalues})
-        negative_items = []
-        for u in users:
             neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
-
             relevance_probability = all_score[u, neg_items]
             relevance_probability = utils.softmax(relevance_probability)
             neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(neg_item)
 
-        node_2 += [self.n_users + p for p in negative_items]
+        node_2 = [self.n_users + p for p in pos_items] + [self.n_users + p for p in negative_items]
         node_1 = users*2
         labels = [1.0]*config.missing_edge + [0.0] * config.missing_edge
 
@@ -139,15 +132,7 @@ class SpectralGAN(object):
         """sample nodes for the generator"""
         users = random.sample(range(self.n_users), config.missing_edge)
 
-        R_missing = np.copy(self.R)
-        for u in users:
-            pos_items = set(np.nonzero(self.R[u,:])[0].tolist())
-            pos_item = random.sample(pos_items, 1)[0]
-            R_missing[u, pos_item] = 0
-
-        adj_missing = self.adj_mat(R=R_missing)
-
-        eigenvalues, eigenvectors = linalg.eigs(adj_missing, k=config.n_eigs)
+        eigenvalues, eigenvectors = linalg.eigs(self.adj, k=config.n_eigs)
 
         all_score = self.sess.run(self.generator.all_score, feed_dict={self.generator.eigen_vectors: eigenvectors,
                                                                        self.generator.eigen_values:   eigenvalues})

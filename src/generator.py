@@ -16,7 +16,6 @@ class Generator(object):
                                                                mean=0.01, stddev=0.02, dtype=tf.float32),
                                                                name='weight')
 
-        #self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
         self.eigen_vectors = tf.placeholder(tf.float32, shape=[self.n_node, config.n_eigs])
         self.eigen_values = tf.placeholder(tf.float32, shape=[config.n_eigs])
         self.node_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
