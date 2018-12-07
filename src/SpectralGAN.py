@@ -101,12 +101,13 @@ class SpectralGAN(object):
                 losess.append(loss)
                 # print("gepoch {} prepare for d {}, update {}".format(g_epoch, p_e-g_s, g_e - p_e))
 
-            print("g_loss %f" % np.mean(np.asarray(losess)))
-            ret = test.test(sess=self.sess, model=self.discriminator, users_to_test=data.test_set.keys())
-            print('recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
-                  % (ret[0], ret[1], ret[2], ret[3], ret[4]))
-            print('map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
-                  % (ret[5], ret[6], ret[7], ret[8], ret[9]))
+            if epoch % config.test_interval == 0:
+                print("g_loss %f" % np.mean(np.asarray(losess)))
+                ret = test.test(sess=self.sess, model=self.discriminator, users_to_test=data.test_set.keys())
+                print('recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
+                      % (ret[0], ret[1], ret[2], ret[3], ret[4]))
+                print('map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
+                      % (ret[5], ret[6], ret[7], ret[8], ret[9]))
         print("training completes")
 
     def prepare_data_for_d(self, all_score):
