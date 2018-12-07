@@ -67,11 +67,11 @@ class SpectralGAN(object):
                 d_s = time()
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
-                    eigen_vectors, eigen_values, node_1, node_2, labels = self.prepare_data_for_d()
+                    node_1, node_2, labels = self.prepare_data_for_d(all_score)
                 p_e = time()
                 _, loss = self.sess.run([self.discriminator.d_updates, self.discriminator.loss],
-                              feed_dict={self.discriminator.eigen_vectors: eigen_vectors,
-                                         self.discriminator.eigen_values: eigen_values,
+                              feed_dict={self.discriminator.eigen_vectors: eigenvalues,
+                                         self.discriminator.eigen_values: eigenvectors,
                                          self.discriminator.node_id: np.array(node_1),
                                          self.discriminator.node_neighbor_id: np.array(node_2),
                                          self.discriminator.label: np.array(labels)})
@@ -105,7 +105,7 @@ class SpectralGAN(object):
                   % (ret[5], ret[6], ret[7], ret[8], ret[9]))
         print("training completes")
 
-    def prepare_data_for_d(self):
+    def prepare_data_for_d(self, all_score):
         """generate positive and negative samples for the discriminator, and record them in the txt file"""
         users = random.sample(range(self.n_users), config.missing_edge)
 
@@ -126,7 +126,7 @@ class SpectralGAN(object):
         node_1 = users*2
         labels = [1.0]*config.missing_edge + [0.0] * config.missing_edge
 
-        return eigenvectors, eigenvalues, node_1, node_2, labels
+        return node_1, node_2, labels
 
     def prepare_data_for_g(self):
         """sample nodes for the generator"""
