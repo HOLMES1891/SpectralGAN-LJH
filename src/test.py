@@ -1,5 +1,4 @@
-
-from src import load_data
+import load_data
 import config
 import utils
 from SpectralGAN import data

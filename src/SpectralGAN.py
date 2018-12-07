@@ -9,6 +9,7 @@ import load_data
 import utils
 import test
 from scipy.sparse import linalg
+from time import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # os.environ["CUDA_VISIBLE_DEVICES"]= '0'
@@ -60,9 +61,11 @@ class SpectralGAN(object):
             labels = []
             losess = []
             for d_epoch in range(config.n_epochs_dis):
+                d_s = time()
                 # generate new nodes for the discriminator for every dis_interval iterations
                 if d_epoch % config.dis_interval == 0:
                     eigen_vectors, eigen_values, node_1, node_2, labels = self.prepare_data_for_d()
+                p_e = time()
                 _, loss = self.sess.run([self.discriminator.d_updates, self.discriminator.loss],
                               feed_dict={self.discriminator.eigen_vectors: eigen_vectors,
                                          self.discriminator.eigen_values: eigen_values,
@@ -70,6 +73,8 @@ class SpectralGAN(object):
                                          self.discriminator.node_neighbor_id: np.array(node_2),
                                          self.discriminator.label: np.array(labels)})
                 losess.append(loss)
+                d_e = time()
+                print("prepare for d {}, update {}".format(p_e-d_s, d_e-p_e))
             print("d_loss %f" % np.mean(np.asarray(losess)))
 
             # G-steps
