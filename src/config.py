@@ -9,8 +9,8 @@ n_sample_gen = 40  # number of samples for the generator
 lr_gen = 1e-3  # learning rate for the generator
 lr_dis = 1e-3  # learning rate for the discriminator
 n_epochs = 30000  # number of outer loops
-n_epochs_gen = 200  # number of inner loops for the generator
-n_epochs_dis = 200  # number of inner loops for the discriminator
+n_epochs_gen = 50  # number of inner loops for the generator
+n_epochs_dis = 50  # number of inner loops for the discriminator
 gen_interval = 1 #n_epochs_gen  # sample new nodes for the generator for every gen_interval iterations
 dis_interval = 1 #n_epochs_dis  # sample new nodes for the discriminator for every dis_interval iterations
 

@@ -15,12 +15,12 @@ class Discriminator(object):
                                                                mean=0.01, stddev=0.02, dtype=tf.float32),
                                                                name='weight')
 
-        #self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
+        # self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
         self.eigen_vectors = tf.placeholder(tf.float32, shape=[self.n_node, config.n_eigs])
-        self.eigen_values = tf.placeholder(tf.float32, shape=[config.n_eigs])
-        self.node_id = tf.placeholder(tf.int32, shape=[config.missing_edge*2])
-        self.node_neighbor_id = tf.placeholder(tf.int32, shape=[config.missing_edge*2])
-        self.label = tf.placeholder(tf.float32, shape=[config.missing_edge*2])
+        self.eigen_values = tf.placeholder(tf.float32)
+        self.node_id = tf.placeholder(tf.int32)
+        self.node_neighbor_id = tf.placeholder(tf.int32)
+        self.label = tf.placeholder(tf.float32)
 
         A_hat = tf.add(tf.matmul(self.eigen_vectors, tf.transpose(self.eigen_vectors)),
                        tf.matmul(self.eigen_vectors, tf.matmul(tf.diag(self.eigen_values),

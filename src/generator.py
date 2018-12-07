@@ -3,6 +3,7 @@ import config
 import test
 from SpectralGAN import data
 
+
 class Generator(object):
     def __init__(self, n_node, n_layer):
         self.n_node = n_node
@@ -17,10 +18,10 @@ class Generator(object):
                                                                name='weight')
 
         self.eigen_vectors = tf.placeholder(tf.float32, shape=[self.n_node, config.n_eigs])
-        self.eigen_values = tf.placeholder(tf.float32, shape=[config.n_eigs])
-        self.node_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
-        self.node_neighbor_id = tf.placeholder(tf.int32, shape=[config.missing_edge])
-        self.reward = tf.placeholder(tf.float32, shape=[config.missing_edge])
+        self.eigen_values = tf.placeholder(tf.float32)
+        self.node_id = tf.placeholder(tf.int32)
+        self.node_neighbor_id = tf.placeholder(tf.int32)
+        self.reward = tf.placeholder(tf.float32)
 
         # adj_miss = tf.cast(self.adj_miss, tf.float32)
         # degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
