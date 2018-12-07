@@ -51,14 +51,14 @@ def test_one_user(x):
     ap_80 = utils.average_precision(r, 80)
     ap_100 = utils.average_precision(r, 100)
 
-    return np.array([recall_20,recall_40,recall_60,recall_80,recall_100, ap_20,ap_40,ap_60,ap_80,ap_100])
+    return np.array([recall_20, recall_40, recall_60, recall_80, recall_100, ap_20, ap_40, ap_60, ap_80, ap_100])
 
 
 def test(sess, model, users_to_test):
     result = np.array([0.] * 10)
     pool = multiprocessing.Pool(cores)
     batch_size = config.batch_size_gen
-    #all users needed to test
+    # all users needed to test
     test_users = users_to_test
     test_user_num = len(test_users)
 
@@ -70,9 +70,8 @@ def test(sess, model, users_to_test):
 
     user_batch_rating = sess.run(model.all_score, feed_dict={model.eigen_vectors: eigenvectors,
                                                              model.eigen_values: eigenvalues})
-    user_batch_rating_uid = zip(user_batch_rating, test_users)
+    user_batch_rating_uid = zip(np.take(user_batch_rating, test_users, axis=0).tolist(), test_users)
     batch_result = pool.map(test_one_user, user_batch_rating_uid)
-
 
     for re in batch_result:
         result += re

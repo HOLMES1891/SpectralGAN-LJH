@@ -11,6 +11,8 @@ import test
 from scipy.sparse import linalg
 from time import time
 
+config.print_config()
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # os.environ["CUDA_VISIBLE_DEVICES"]= '0'
 data = load_data.Data(train_file=config.train_filename, test_file=config.test_filename)
@@ -100,14 +102,21 @@ class SpectralGAN(object):
                 g_e = time()
                 losess.append(loss)
                 # print("gepoch {} prepare for d {}, update {}".format(g_epoch, p_e-g_s, g_e - p_e))
-
             if epoch % config.test_interval == 0:
                 print("g_loss %f" % np.mean(np.asarray(losess)))
-                ret = test.test(sess=self.sess, model=self.discriminator, users_to_test=data.test_set.keys())
-                print('recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
+                print("------------------------- test on D -------------------------")
+                ret = test.test(sess=self.sess, model=self.discriminator, users_to_test=list(data.test_set.keys()))
+                print('discriminator: recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
                       % (ret[0], ret[1], ret[2], ret[3], ret[4]))
-                print('map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
+                print('discriminator: map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
                       % (ret[5], ret[6], ret[7], ret[8], ret[9]))
+                print("------------------------- test on G -------------------------")
+                ret = test.test(sess=self.sess, model=self.generator, users_to_test=list(data.test_set.keys()))
+                print('generator: recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
+                      % (ret[0], ret[1], ret[2], ret[3], ret[4]))
+                print('generator: map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
+                      % (ret[5], ret[6], ret[7], ret[8], ret[9]))
+
         print("training completes")
 
     def prepare_data_for_d(self, all_score):
@@ -122,10 +131,10 @@ class SpectralGAN(object):
             p_items = set(np.nonzero(self.R[u, :])[0].tolist())
             p_item = random.sample(p_items, 1)[0]
             pos_items.append(p_item)
-            # neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
-            relevance_probability = all_score[u, :]
+            neg_items = list(set(range(self.n_items)) - set(np.nonzero(self.R[u, :])[0].tolist()))
+            relevance_probability = all_score[u, neg_items]
             relevance_probability = utils.softmax(relevance_probability)
-            neg_item = np.random.choice(all_items, size=1, p=relevance_probability)[0]  # select next node
+            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(neg_item)
 
         node_2 = [self.n_users + p for p in pos_items] + [self.n_users + p for p in negative_items]
@@ -143,22 +152,23 @@ class SpectralGAN(object):
 
         negative_items = []
         all_items = list(range(self.n_items))
+
         for u in users:
-            # pos_items = set(np.nonzero(self.R[u, :])[0].tolist())
-            # neg_items = list(set(range(self.n_items)) - pos_items)
-            relevance_probability = all_score[u, :]
+            pos_items = set(np.nonzero(self.R[u, :])[0].tolist())
+            neg_items = list(set(range(self.n_items)) - pos_items)
+            relevance_probability = all_score[u, neg_items]
             relevance_probability = utils.softmax(relevance_probability)
-            neg_item = np.random.choice(all_items, size=1, p=relevance_probability)[0]  # select next node
+            neg_item = np.random.choice(neg_items, size=1, p=relevance_probability)[0]  # select next node
             negative_items.append(data.n_users + neg_item)
 
-        node_1 = users*2
-        node_2 = negative_items*2
+        node_1 = users
+        node_2 = negative_items
         reward = self.sess.run(self.discriminator.reward,
                                feed_dict={self.discriminator.eigen_vectors: self.eigenvectors,
                                           self.discriminator.eigen_values: self.eigenvalues,
                                           self.discriminator.node_id: np.array(node_1),
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
-        return node_1[:config.missing_edge], node_2[:config.missing_edge], reward[:config.missing_edge]
+        return node_1, node_2, reward
 
     def adj_mat(self, R, self_connection=True):
         A = np.zeros([self.n_users + self.n_items, self.n_users + self.n_items], dtype=np.float32)
