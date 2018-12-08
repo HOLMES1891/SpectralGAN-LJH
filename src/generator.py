@@ -10,11 +10,11 @@ class Generator(object):
 
         with tf.variable_scope('generator'):
             self.embedding_matrix = tf.Variable(tf.random_normal([self.n_node, config.emb_dim],
-                                                                 mean=0.01, stddev=0.02, dtype=tf.float32),
+                                                                 mean=0.0, stddev=0.02, dtype=tf.float32),
                                                                  name='features')
 
             self.weight_matrix = tf.Variable(tf.random_normal([n_layer, config.emb_dim, config.emb_dim],
-                                                               mean=0.01, stddev=0.02, dtype=tf.float32),
+                                                               mean=0.0, stddev=0.02, dtype=tf.float32),
                                                                name='weight')
 
         self.eigen_vectors = tf.placeholder(tf.float32, shape=[self.n_node, config.n_eigs])
