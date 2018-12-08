@@ -10,6 +10,12 @@ cores = multiprocessing.cpu_count()
 
 USER_NUM, ITEM_NUM = data.n_users, data.n_items
 
+A = np.zeros([data.n_users + data.n_items, data.n_users + data.n_items], dtype=np.float32)
+A[:data.n_users, data.n_users:] = data.R
+A[data.n_users:, :data.n_users] = data.R.T
+A = np.identity(data.n_users + data.n_items, dtype=np.float32) + A
+eigenvalues, eigenvectors = linalg.eigs(A, k=config.n_eigs)
+
 
 def test_one_user(x):
     # user u's ratings for user u
@@ -61,12 +67,6 @@ def test(sess, model, users_to_test):
     # all users needed to test
     test_users = users_to_test
     test_user_num = len(test_users)
-
-    A = np.zeros([data.n_users + data.n_items, data.n_users + data.n_items], dtype=np.float32)
-    A[:data.n_users, data.n_users:] = data.R
-    A[data.n_users:, :data.n_users] = data.R.T
-    A = np.identity(data.n_users + data.n_items, dtype=np.float32) + A
-    eigenvalues, eigenvectors = linalg.eigs(A, k=config.n_eigs)
 
     user_batch_rating = sess.run(model.all_score, feed_dict={model.eigen_vectors: eigenvectors,
                                                              model.eigen_values: eigenvalues})

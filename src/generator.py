@@ -29,22 +29,24 @@ class Generator(object):
         A_hat = tf.add(tf.matmul(self.eigen_vectors, tf.transpose(self.eigen_vectors)),
                        tf.matmul(self.eigen_vectors, tf.matmul(tf.diag(self.eigen_values),
                                                                tf.transpose(self.eigen_vectors))))
+        # all_embeddings = self.embedding_matrix
         all_embeddings = [self.embedding_matrix]
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
-            embedding_matrix = tf.nn.relu(tf.matmul(tf.matmul(A_hat, self.embedding_matrix),
+            embedding_matrix = tf.nn.sigmoid(tf.matmul(tf.matmul(A_hat, self.embedding_matrix),
                                                   weight_for_l))
             all_embeddings.append(embedding_matrix)
-
+        #
         all_embeddings = tf.concat(all_embeddings, 1)
+
         self.node_embedding = tf.nn.embedding_lookup(all_embeddings, self.node_id)  # batch_size * n_embed
 
         self.node_neighbor_embedding = tf.nn.embedding_lookup(all_embeddings,
                                                               self.node_neighbor_id)
         self.score = tf.reduce_sum(self.node_embedding * self.node_neighbor_embedding, axis=1)
-        self.prob = tf.clip_by_value(tf.nn.leaky_relu(self.score), 1e-5, 1)
+        self.prob = tf.clip_by_value(tf.nn.sigmoid(self.score), 1e-5, 1)
 
-        self.loss = -tf.reduce_mean(tf.log(self.prob) * self.reward) + config.lambda_gen * (
+        self.loss = -tf.reduce_sum(tf.log(self.prob) * self.reward) + config.lambda_gen * (
                     tf.nn.l2_loss(self.node_neighbor_embedding) + tf.nn.l2_loss(self.node_embedding))
 
         user_embeddings, item_embeddings = tf.split(all_embeddings, [data.n_users, data.n_items])

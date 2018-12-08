@@ -11,7 +11,6 @@ import test
 from scipy.sparse import linalg
 from time import time
 
-config.print_config()
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # os.environ["CUDA_VISIBLE_DEVICES"]= '0'
@@ -110,12 +109,12 @@ class SpectralGAN(object):
                       % (ret[0], ret[1], ret[2], ret[3], ret[4]))
                 print('discriminator: map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
                       % (ret[5], ret[6], ret[7], ret[8], ret[9]))
-                print("------------------------- test on G -------------------------")
-                ret = test.test(sess=self.sess, model=self.generator, users_to_test=list(data.test_set.keys()))
-                print('generator: recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
-                      % (ret[0], ret[1], ret[2], ret[3], ret[4]))
-                print('generator: map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
-                      % (ret[5], ret[6], ret[7], ret[8], ret[9]))
+                # print("------------------------- test on G -------------------------")
+                # ret = test.test(sess=self.sess, model=self.generator, users_to_test=list(data.test_set.keys()))
+                # print('generator: recall_20 %f recall_40 %f recall_60 %f recall_80 %f recall_100 %f'
+                #       % (ret[0], ret[1], ret[2], ret[3], ret[4]))
+                # print('generator: map_20 %f map_40 %f map_60 %f map_80 %f map_100 %f'
+                #       % (ret[5], ret[6], ret[7], ret[8], ret[9]))
 
         print("training completes")
 
@@ -180,5 +179,6 @@ class SpectralGAN(object):
 
 
 if __name__ == "__main__":
+    config.print_config()
     spectral_gan = SpectralGAN(n_users=data.n_users, n_items=data.n_items, R=data.R)
     spectral_gan.train()
