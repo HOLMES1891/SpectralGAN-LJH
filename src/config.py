@@ -36,6 +36,7 @@ test_filename = "../data/ml-1m/test_users.dat"
 def print_config():
     print("====================== config ======================")
     print("lr_gen {}, lr_dis {}".format(lr_gen, lr_dis))
+    print("lambda_gen {}, lambda_dis {}".format(lambda_gen, lambda_dis))
     print("n_epochs_gen {}, n_epochs_dis {}".format(n_epochs_gen, n_epochs_dis))
     print("n_layers {}, n_eigs {}, missing_edge {}".format(n_layers, n_eigs, missing_edge))
     print("===================== note ========================\n", log)

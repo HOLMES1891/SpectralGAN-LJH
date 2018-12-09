@@ -7,7 +7,6 @@ class Data(object):
         #get number of users and items
         self.n_users, self.n_items = 0, 0
 
-
         with open(train_file) as f:
             for l in f.readlines():
                 if len(l) > 0:
