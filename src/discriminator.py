@@ -15,29 +15,21 @@ class Discriminator(object):
                                                                mean=0.0, stddev=0.02, dtype=tf.float32),
                                                                name='weight')
 
-        # self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
-        self.eigen_vectors = tf.placeholder(tf.float32, shape=[self.n_node, config.n_eigs])
-        self.eigen_values = tf.placeholder(tf.float32)
+        self.adj_miss = tf.placeholder(tf.int32, shape=[n_node, n_node])
         self.node_id = tf.placeholder(tf.int32)
         self.node_neighbor_id = tf.placeholder(tf.int32)
         self.label = tf.placeholder(tf.float32)
 
-        A_hat = tf.add(tf.matmul(self.eigen_vectors, tf.transpose(self.eigen_vectors)),
-                       tf.matmul(self.eigen_vectors, tf.matmul(tf.diag(self.eigen_values),
-                                                               tf.transpose(self.eigen_vectors))))
-
-        all_embeddings = [self.embedding_matrix]
-
+        adj_miss = tf.cast(self.adj_miss, tf.float32)
+        degree = tf.diag(tf.reciprocal(tf.reduce_sum(adj_miss, axis=1)))
         for l in range(n_layer):
             weight_for_l = tf.gather(self.weight_matrix, l)
-            embedding_matrix = tf.nn.sigmoid(tf.matmul(tf.matmul(A_hat, self.embedding_matrix),
+            self.embedding_matrix = tf.nn.sigmoid(tf.matmul(tf.matmul(tf.matmul(degree, adj_miss),
+                                                                      self.embedding_matrix),
                                                             weight_for_l))
-            all_embeddings.append(embedding_matrix)
 
-        all_embeddings = tf.concat(all_embeddings, 1)
-
-        self.node_embedding = tf.nn.embedding_lookup(all_embeddings, self.node_id)
-        self.node_neighbor_embedding = tf.nn.embedding_lookup(all_embeddings,
+        self.node_embedding = tf.nn.embedding_lookup(self.embedding_matrix, self.node_id)
+        self.node_neighbor_embedding = tf.nn.embedding_lookup(self.embedding_matrix,
                                                               self.node_neighbor_id)
         self.score = tf.reduce_sum(tf.multiply(self.node_embedding, self.node_neighbor_embedding), axis=1)
 
@@ -46,7 +38,7 @@ class Discriminator(object):
                 + config.lambda_dis * ( tf.nn.l2_loss(self.node_neighbor_embedding) +
                                                 tf.nn.l2_loss(self.node_embedding))
 
-        user_embeddings, item_embeddings = tf.split(all_embeddings, [self.data.n_users, self.data.n_items])
+        user_embeddings, item_embeddings = tf.split(self.embedding_matrix, [self.data.n_users, self.data.n_items])
         self.all_score = tf.matmul(user_embeddings, item_embeddings, transpose_b=True)
 
         optimizer = tf.train.AdamOptimizer(config.lr_dis)

@@ -72,8 +72,7 @@ class SpectralGAN(object):
                 p_e = time()
 
                 _, loss = self.sess.run([self.discriminator.d_updates, self.discriminator.loss],
-                              feed_dict={self.discriminator.eigen_vectors: self.eigenvectors,
-                                         self.discriminator.eigen_values: self.eigenvalues,
+                              feed_dict={self.discriminator.adj_miss: self.adj,
                                          self.discriminator.node_id: np.array(node_1),
                                          self.discriminator.node_neighbor_id: np.array(node_2),
                                          self.discriminator.label: np.array(labels)})
@@ -163,8 +162,7 @@ class SpectralGAN(object):
         node_1 = users
         node_2 = negative_items
         reward = self.sess.run(self.discriminator.reward,
-                               feed_dict={self.discriminator.eigen_vectors: self.eigenvectors,
-                                          self.discriminator.eigen_values: self.eigenvalues,
+                               feed_dict={self.discriminator.adj_miss: self.adj,
                                           self.discriminator.node_id: np.array(node_1),
                                           self.discriminator.node_neighbor_id: np.array(node_2)})
         return node_1, node_2, reward
